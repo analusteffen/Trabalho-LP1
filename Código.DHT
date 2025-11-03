@@ -1,0 +1,107 @@
+// =======================================================
+// Leitura de temperatura/umidade com DHT
+// Ordenação de dados pareados com Bubble Sort
+// =======================================================
+
+// Bibliotecas necessárias
+#include "DHT.h"
+
+// Configuração do sensor 
+#define DHTPIN 3        // Pino de dados do DHT
+#define DHTTYPE DHT22   // Tipo do sensor
+DHT dht(DHTPIN, DHTTYPE);
+
+// Parâmetros
+#define NUM_LEITURAS 8  // Quantas leituras serão armazenadas antes de ordenar
+
+// Estrutura de Dados 
+// Agrupa um par de leitura (temp + umidade)
+// Isso garante que os dados lidos juntos permaneçam juntos.
+struct Leitura {
+  float temp;
+  float umid;
+};
+
+// Array principal que armazena as leituras
+Leitura dadosColetados[NUM_LEITURAS];
+int contador = 0;
+
+// Função de ordenação: Bubble Sort 
+// Ordena o array de structs com base na temperatura.
+
+void bubbleSort(Leitura arr[], int n) {
+  // Loop externo: passa por todos os elementos
+  for (int i = 0; i < n - 1; i++) {
+    
+    // Loop interno: "borbulha" o maior item para o fim
+    // A cada passagem 'i', o i-ésimo maior item já está no lugar
+    for (int j = 0; j < n - i - 1; j++) {
+      
+      // Compara a temperatura do item atual (j) com a do próximo (j+1)
+      if (arr[j].temp > arr[j + 1].temp) {
+        
+        // Se estiverem fora de ordem, troca a struct INTEIRA
+        Leitura tempSwap = arr[j];
+        arr[j] = arr[j + 1];
+        arr[j + 1] = tempSwap;
+      }
+    }
+  }
+}
+
+// Setup
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println(F("Leitura DHT + Bubble Sort (com Structs)"));
+  dht.begin();
+}
+
+// Loop principal
+
+void loop() {
+  delay(2000); // aguarda entre as medições
+
+  float h = dht.readHumidity();
+  float t = dht.readTemperature(); // Celsius
+
+  if (isnan(h) || isnan(t)) {
+    Serial.println(F("Falha na leitura do sensor DHT!"));
+    return;
+  }
+
+  // Armazena as leituras na struct dentro do array
+  dadosColetados[contador].temp = t;
+  dadosColetados[contador].umid = h;
+  contador++;
+
+  Serial.print("Leitura ");
+  Serial.print(contador);
+  Serial.print(": ");
+  Serial.print(t);
+  Serial.print("°C  ");
+  Serial.print(h);
+  Serial.println("%");
+
+  // Quando atinge o número de leituras, ordena e mostra os resultados
+  if (contador == NUM_LEITURAS) {
+    Serial.println("\n=== Ordenando leituras (baseado na Temperatura) ===");
+
+    // Chama o novo algoritmo de ordenação
+    bubbleSort(dadosColetados, NUM_LEITURAS);
+
+    // Imprime os resultados formatados em uma tabela
+    Serial.println("Temp (°C) \t Umid (%)");
+    Serial.println("---------------------------");
+    for (int i = 0; i < NUM_LEITURAS; i++) {
+      Serial.print(dadosColetados[i].temp);
+      Serial.print("\t\t"); // \t = tabulação para alinhar
+      Serial.print(dadosColetados[i].umid);
+      Serial.println();
+    }
+    Serial.println("\n=========================\n");
+
+    // Reinicia o contador para coletar novas leituras
+    contador = 0;
+  }
+}
